@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta id="meta-theme" name="theme-color" content="#0e0e0e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Mines">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <title>Mines</title>
+</head>
+<body>
+  <div id="app">
+
+    <header>
+      <div class="hrow hrow-top">
+        <div class="stat">
+          <img class="ei" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f4a3.svg" alt="mines" draggable="false">
+          <span id="mines-left">10</span>
+        </div>
+        <button id="restart-btn" aria-label="New game">↺</button>
+        <div class="stat stat-r">
+          <span id="timer-val">0</span>
+          <small>s</small>
+        </div>
+      </div>
+      <div class="hrow hrow-bot">
+        <nav class="diff-group" aria-label="Difficulty">
+          <button class="diff-btn active" data-diff="easy">Easy</button>
+          <button class="diff-btn" data-diff="medium">Med</button>
+          <button class="diff-btn" data-diff="hard">Hard</button>
+        </nav>
+        <div class="right-ctrls">
+          <label class="ftoggle" aria-label="Flag mode">
+            <input type="checkbox" id="flag-toggle" role="switch">
+            <span class="ttrack"><span class="tthumb"></span></span>
+            <img class="ei fei" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f6a9.svg" alt="flag" draggable="false">
+          </label>
+          <button id="theme-btn" aria-label="Toggle theme">☀</button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div id="board-wrap">
+        <div id="board"></div>
+      </div>
+    </main>
+
+    <div id="overlay" class="hidden" role="dialog" aria-modal="true">
+      <div class="ov-card">
+        <div id="ov-emoji"></div>
+        <h2 id="ov-title"></h2>
+        <p id="ov-sub"></p>
+        <button id="ov-btn">Play Again</button>
+      </div>
+    </div>
+
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
