@@ -18,37 +18,36 @@
 <body>
   <div id="app">
 
-    <!-- ── Header ── -->
+    <!-- ── Header ──────────────────────────────────────────────────────── -->
     <header>
       <div id="stat-mines" class="stat">
         <!-- bomb SVG injected by JS -->
         <span id="mines-left">10</span>
       </div>
-
       <div id="stat-timer" class="stat stat-center">
         <span id="timer-val">0.00</span>
         <small>s</small>
       </div>
-
       <div class="header-right">
-        <label class="ftoggle" aria-label="Flag mode">
-          <input type="checkbox" id="flag-toggle" role="switch">
-          <span class="ttrack"><span class="tthumb"></span></span>
-          <span id="flag-icon-wrap"></span><!-- flag SVG injected -->
-        </label>
-        <button id="gear-btn"  aria-label="Settings"></button><!-- gear SVG injected -->
-        <button id="theme-btn" aria-label="Toggle theme"></button><!-- sun/moon injected -->
+        <button id="gear-btn"  aria-label="Settings"></button>
+        <button id="theme-btn" aria-label="Toggle theme"></button>
       </div>
     </header>
 
-    <!-- ── Board ── -->
+    <!-- ── Board ────────────────────────────────────────────────────────── -->
     <main id="main">
       <div id="board-wrap">
         <div id="board"></div>
       </div>
     </main>
 
-    <!-- ── Win / Lose overlay ── -->
+    <!-- ── Draggable flag FAB ─────────────────────────────────────────── -->
+    <div id="flag-fab" aria-label="Toggle flag mode" role="button" tabindex="0">
+      <div id="fab-icon"></div>
+      <div id="fab-label">Reveal</div>
+    </div>
+
+    <!-- ── Win / Lose overlay ─────────────────────────────────────────── -->
     <div id="overlay" class="hidden" role="dialog" aria-modal="true">
       <div class="ov-card">
         <div id="ov-emoji"></div>
@@ -58,7 +57,7 @@
       </div>
     </div>
 
-    <!-- ── Settings sheet ── -->
+    <!-- ── Settings sheet ─────────────────────────────────────────────── -->
     <div id="sheet-backdrop"></div>
     <div id="settings-sheet" role="dialog" aria-label="Settings">
       <div id="sheet-handle"></div>
@@ -68,24 +67,35 @@
           <p class="sheet-label">Difficulty</p>
           <nav class="diff-group">
             <button class="diff-btn active" data-diff="easy">Easy</button>
-            <button class="diff-btn"        data-diff="medium">Medium</button>
+            <button class="diff-btn"        data-diff="medium">Med</button>
             <button class="diff-btn"        data-diff="hard">Hard</button>
+            <button class="diff-btn"        data-diff="extreme">Ext</button>
           </nav>
         </div>
 
         <button id="new-game-btn">New Game</button>
 
         <div class="sheet-section">
-          <p class="sheet-label">Best Times</p>
+          <div class="score-header-row">
+            <p class="sheet-label">Best Times</p>
+            <div class="score-io">
+              <button id="export-btn" class="io-btn" title="Export scores">
+                <!-- export SVG injected -->
+              </button>
+              <label class="io-btn" id="import-label" title="Import scores">
+                <input type="file" id="import-input" accept=".json">
+                <!-- import SVG injected -->
+              </label>
+            </div>
+          </div>
           <div id="scoreboard"></div>
         </div>
 
         <div class="sheet-section sheet-theme-row">
-          <p class="sheet-label" style="margin-bottom:0">Theme</p>
-          <label class="ftoggle" id="theme-toggle-wrap" aria-label="Light mode">
+          <p class="sheet-label" style="margin-bottom:0">Light Mode</p>
+          <label class="ftoggle" aria-label="Light mode">
             <input type="checkbox" id="theme-toggle" role="switch">
             <span class="ttrack"><span class="tthumb"></span></span>
-            <span class="theme-toggle-label">Light</span>
           </label>
         </div>
 
