@@ -135,6 +135,17 @@ main {
 .cell.n5{color:var(--n5)} .cell.n6{color:var(--n6)} .cell.n7{color:var(--n7)} .cell.n8{color:var(--n8)}
 .cell svg { display: block; pointer-events: none; }
 
+/* ── Cascade reveal animation ──────────────────────────────────────────────── */
+@keyframes cellPop {
+  from { opacity: 0; transform: scale(0.7);  }
+  60%  {             transform: scale(1.06); }
+  to   { opacity: 1; transform: scale(1);    }
+}
+.cell.pop {
+  /* delay set inline by JS; both = hold initial state during delay */
+  animation: cellPop 0.22s cubic-bezier(.34,1.56,.64,1) both;
+}
+
 /* ── Flag FAB (draggable) ───────────────────────────────────────────────────── */
 #flag-fab {
   position: absolute;
@@ -222,7 +233,7 @@ main {
   background: var(--surface-hi); border-radius: 2px;
   margin: 12px auto 0;
 }
-.sheet-body { padding: 18px 20px 4px; }
+.sheet-body { padding: 18px 20px 4px; overflow-y: auto; max-height: 78dvh; }
 .sheet-section { margin-bottom: 22px; }
 .sheet-label {
   font-size: 10px; font-weight: 600;
@@ -303,3 +314,24 @@ main {
 .sheet-theme-row {
   display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;
 }
+
+/* ── Color swatches ────────────────────────────────────────────────────────── */
+.color-swatches { display: flex; gap: 10px; flex-wrap: wrap; padding: 2px 0; }
+.swatch {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 2.5px solid transparent;
+  cursor: pointer; flex-shrink: 0;
+  transition: transform .15s, border-color .15s;
+}
+.swatch.active { border-color: var(--text); transform: scale(1.2); }
+.swatch:active { transform: scale(0.88); }
+
+/* ── Win rate stats ─────────────────────────────────────────────────────────── */
+.stat-row {
+  display: flex; align-items: center;
+  padding: 6px 0; gap: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.stat-diff { width: 54px; font-size: 11px; color: var(--text-dim); text-transform: capitalize; }
+.stat-nums { flex: 1; font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.stat-rate { font-size: 13px; font-weight: 600; color: var(--accent); min-width: 36px; text-align: right; }

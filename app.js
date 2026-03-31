@@ -1,5 +1,15 @@
 'use strict';
 
+// ── Accent colour palette ─────────────────────────────────────────────────────
+const COLORS = [
+  { name: 'blue',   dark: '#0a84ff', light: '#007aff' },
+  { name: 'green',  dark: '#30d158', light: '#34c759' },
+  { name: 'orange', dark: '#ff9f0a', light: '#ff9500' },
+  { name: 'purple', dark: '#bf5af2', light: '#af52de' },
+  { name: 'pink',   dark: '#ff375f', light: '#ff2d55' },
+  { name: 'teal',   dark: '#40c8e0', light: '#32ade6' },
+];
+
 // ── Difficulty presets (square grids) ─────────────────────────────────────────
 const DIFF = {
   easy:    { rows: 8,  cols: 8,  mines: 10  },
@@ -72,22 +82,27 @@ function calcAdjacent(board, rows, cols) {
     }
 }
 
+// Reveals cells via flood-fill AND returns them in BFS order (for animation).
+// Each entry: { r, c, dist } where dist = BFS distance from origin.
 function floodReveal(board, startR, startC, rows, cols) {
-  const q = [[startR, startC]];
+  const result = [];
+  const q = [[startR, startC, 0]];
   while (q.length) {
-    const [r, c] = q.shift();
+    const [r, c, dist] = q.shift();
     const cell = board[r][c];
     if (cell.revealed || cell.flagged || cell.isMine) continue;
     cell.revealed = true;
+    result.push({ r, c, dist });
     if (cell.adjacent > 0) continue;
     for (let dr = -1; dr <= 1; dr++)
       for (let dc = -1; dc <= 1; dc++) {
         if (dr === 0 && dc === 0) continue;
         const nr = r + dr, nc = c + dc;
         if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && !board[nr][nc].revealed)
-          q.push([nr, nc]);
+          q.push([nr, nc, dist + 1]);
       }
   }
+  return result;
 }
 
 function isWon(board, rows, cols, mines) {
@@ -96,6 +111,30 @@ function isWon(board, rows, cols, mines) {
     for (let c = 0; c < cols; c++)
       if (board[r][c].revealed) rev++;
   return rev === rows * cols - mines;
+}
+
+// ── Cascade animation ─────────────────────────────────────────────────────────
+// Applies staggered CSS pop animation to a list of {r,c,dist} cells.
+// Returns the total ms until all animations finish.
+function animateCascade(cells) {
+  if (!cells.length) return 0;
+  const STEP = 20, CAP = 260; // 20ms per BFS level, max 260ms spread
+  const boardEl = document.getElementById('board');
+  // Build r,c → element map once (much faster than repeated querySelector)
+  const elMap = new Map();
+  boardEl.querySelectorAll('.cell').forEach(el =>
+    elMap.set(`${el.dataset.r},${el.dataset.c}`, el)
+  );
+  let maxDelay = 0;
+  cells.forEach(({ r, c, dist }) => {
+    const el = elMap.get(`${r},${c}`);
+    if (!el) return;
+    const delay = Math.min(dist * STEP, CAP);
+    maxDelay = Math.max(maxDelay, delay);
+    el.style.animationDelay = `${delay}ms`;
+    el.classList.add('pop');
+  });
+  return maxDelay + 240; // +240 = animation duration itself
 }
 
 // ── Game actions ──────────────────────────────────────────────────────────────
@@ -133,6 +172,7 @@ function reveal(r, c) {
     cell.revealed = true; cell.isHit = true;
     S.status = 'lost';
     stopTimer();
+    recordGame(S.diff, false);
     for (let i = 0; i < S.rows; i++)
       for (let j = 0; j < S.cols; j++)
         if (S.board[i][j].isMine) S.board[i][j].revealed = true;
@@ -141,17 +181,22 @@ function reveal(r, c) {
     return;
   }
 
-  floodReveal(S.board, r, c, S.rows, S.cols);
+  const cascaded = floodReveal(S.board, r, c, S.rows, S.cols);
+
   if (isWon(S.board, S.rows, S.cols, S.mines)) {
     S.status = 'won';
     stopTimer();
     saveScore(S.diff, S.time);
-    render();
-    setTimeout(() => showOverlay(true), 350);
+    recordGame(S.diff, true);
+    renderBoard();
+    const animMs = animateCascade(cascaded);
+    setTimeout(() => showOverlay(true), animMs + 80);
     return;
   }
 
-  renderBoard(); updateStats();
+  renderBoard();
+  animateCascade(cascaded);
+  updateStats();
 }
 
 function toggleFlag(r, c) {
@@ -213,6 +258,66 @@ function renderScoreboard() {
         : '<div class="score-empty">No records yet</div>';
       return `<div class="score-section"><div class="score-diff-label">${diff}</div>${rows}</div>`;
     }).join('');
+}
+
+// ── Game stats (win rate) ─────────────────────────────────────────────────────
+
+function loadGameStats() {
+  try { return JSON.parse(localStorage.getItem('mines-gamestats') ?? '{}'); }
+  catch { return {}; }
+}
+
+function recordGame(diff, won) {
+  const gs = loadGameStats();
+  if (!gs[diff]) gs[diff] = { played: 0, won: 0 };
+  gs[diff].played++;
+  if (won) gs[diff].won++;
+  localStorage.setItem('mines-gamestats', JSON.stringify(gs));
+}
+
+function renderStats() {
+  const gs = loadGameStats();
+  document.getElementById('game-stats').innerHTML =
+    Object.keys(DIFF).map(diff => {
+      const s = gs[diff] ?? { played: 0, won: 0 };
+      const pct = s.played > 0 ? Math.round(s.won / s.played * 100) : 0;
+      return `<div class="stat-row">
+        <span class="stat-diff">${diff}</span>
+        <span class="stat-nums">${s.won} / ${s.played}</span>
+        <span class="stat-rate">${pct}%</span>
+      </div>`;
+    }).join('');
+}
+
+// ── Accent colour ─────────────────────────────────────────────────────────────
+
+function applyAccent(idx) {
+  const isDark = document.documentElement.dataset.theme !== 'light';
+  const c = COLORS[idx];
+  document.documentElement.style.setProperty('--accent', isDark ? c.dark : c.light);
+  localStorage.setItem('mines-accent', String(idx));
+  document.querySelectorAll('.swatch').forEach((s, i) =>
+    s.classList.toggle('active', i === idx)
+  );
+}
+
+function initSwatches() {
+  const saved = parseInt(localStorage.getItem('mines-accent') ?? '0');
+  const wrap  = document.getElementById('color-swatches');
+  const isDark = document.documentElement.dataset.theme !== 'light';
+  wrap.innerHTML = COLORS.map((c, i) =>
+    `<button class="swatch${i === saved ? ' active' : ''}"
+      data-idx="${i}"
+      style="background:${c.dark}"
+      aria-label="${c.name}"></button>`
+  ).join('');
+  wrap.addEventListener('click', e => {
+    const btn = e.target.closest('.swatch');
+    if (btn) applyAccent(parseInt(btn.dataset.idx));
+  });
+  // Apply saved accent now
+  const c = COLORS[saved];
+  document.documentElement.style.setProperty('--accent', isDark ? c.dark : c.light);
 }
 
 function exportScores() {
@@ -328,6 +433,7 @@ function hideOverlay() {
 function openSheet() {
   syncDiffButtons(S.diff);
   renderScoreboard();
+  renderStats();
   document.getElementById('settings-sheet').classList.add('open');
   document.getElementById('sheet-backdrop').classList.add('open');
 }
@@ -522,6 +628,10 @@ function setupEvents() {
     themeBtnH.innerHTML = light ? I.moon() : I.sun();
     metaTheme.content   = light ? '#f2f2f7' : '#0e0e0e';
     themeToggle.checked = light;
+    // Re-apply accent with correct light/dark variant
+    const idx = parseInt(localStorage.getItem('mines-accent') ?? '0');
+    const c   = COLORS[idx];
+    document.documentElement.style.setProperty('--accent', light ? c.light : c.dark);
   }
   themeBtnH.addEventListener('click', () =>
     applyTheme(document.documentElement.dataset.theme !== 'light')
@@ -546,6 +656,7 @@ function injectIcons() {
 
 document.addEventListener('DOMContentLoaded', () => {
   injectIcons();
+  initSwatches();
   setupEvents();
   setupFab();
   setupPinch();
