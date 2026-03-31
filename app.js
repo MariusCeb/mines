@@ -166,6 +166,10 @@ function newGame(diff) {
   syncDiffButtons(diff);
   hideOverlay();
   render();
+  // Flash board in so the grid change is always visually obvious
+  const boardEl = document.getElementById('board');
+  boardEl.classList.remove('board-in');
+  requestAnimationFrame(() => boardEl.classList.add('board-in'));
 }
 
 function reveal(r, c) {
@@ -642,8 +646,9 @@ function setupEvents() {
   // New game
   document.getElementById('new-game-btn').addEventListener('click', () => {
     const active = document.querySelector('.diff-btn.active');
-    closeSheet();
-    newGame(active?.dataset.diff ?? S.diff);
+    const diff = active?.dataset.diff ?? S.diff;
+    newGame(diff);   // render board first
+    closeSheet();    // sheet slides away to reveal it
   });
 
   // Play again

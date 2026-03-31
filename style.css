@@ -160,6 +160,12 @@ main {
   animation: cellPop 0.22s cubic-bezier(.34,1.56,.64,1) both;
 }
 
+@keyframes boardIn {
+  from { opacity: 0; transform: scale(.95); }
+  to   { opacity: 1; transform: scale(1);   }
+}
+#board.board-in { animation: boardIn .22s cubic-bezier(.34,1.56,.64,1); }
+
 /* ── Flag FAB (draggable) ───────────────────────────────────────────────────── */
 #flag-fab {
   position: absolute;
