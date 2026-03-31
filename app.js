@@ -26,9 +26,29 @@ const S = {
   diff: 'easy', status: 'idle',
   flagMode: false, minesLeft: 10,
   time: 0, timerId: null, startTs: null, firstMove: true,
-  zoomCs: null,   // null = auto-compute, number = user pinch override
-  _lastCs: 20,    // last computed cell size (for pinch reference)
 };
+
+// ── View transform (pinch-zoom + pan via CSS transform) ───────────────────────
+let vZoom = 1, vPanX = 0, vPanY = 0;
+
+function applyViewTransform() {
+  document.getElementById('board-wrap').style.transform =
+    `translate(${vPanX}px, ${vPanY}px) scale(${vZoom})`;
+}
+
+function clampPan() {
+  const main = document.getElementById('main');
+  const wrap = document.getElementById('board-wrap');
+  const maxX = Math.max(0, (wrap.offsetWidth  * vZoom - main.clientWidth)  / 2);
+  const maxY = Math.max(0, (wrap.offsetHeight * vZoom - main.clientHeight) / 2);
+  vPanX = Math.max(-maxX, Math.min(maxX, vPanX));
+  vPanY = Math.max(-maxY, Math.min(maxY, vPanY));
+}
+
+function resetView() {
+  vZoom = 1; vPanX = 0; vPanY = 0;
+  applyViewTransform();
+}
 
 // ── Board generation ──────────────────────────────────────────────────────────
 
@@ -136,8 +156,9 @@ function newGame(diff) {
     board: createBoard(rows, cols), rows, cols, mines, diff,
     status: 'idle', minesLeft: mines,
     time: 0, timerId: null, startTs: null,
-    firstMove: true, flagMode: false, zoomCs: null,
+    firstMove: true, flagMode: false,
   });
+  resetView();
   document.getElementById('flag-fab').classList.remove('flag-on');
   updateFab();
   syncDiffButtons(diff);
@@ -322,17 +343,7 @@ function updateStats() {
 // Updates only CSS layout — zero DOM changes. Safe to call every animation frame.
 function sizeBoard(cs) {
   const boardEl = document.getElementById('board');
-  const mainEl  = document.getElementById('main');
   const gap     = S.cols <= 8 ? 4 : S.cols <= 12 ? 3 : S.cols <= 16 ? 2 : 1;
-  const boardW  = S.cols * cs + (S.cols - 1) * gap;
-  const boardH  = S.rows * cs + (S.rows - 1) * gap;
-  const overflows = boardW > mainEl.clientWidth || boardH > mainEl.clientHeight;
-
-  mainEl.style.overflow       = overflows ? 'auto'       : 'hidden';
-  mainEl.style.alignItems     = overflows ? 'flex-start' : 'center';
-  mainEl.style.justifyContent = overflows ? 'flex-start' : 'center';
-  boardEl.style.touchAction   = overflows ? 'pan-x pan-y' : 'none';
-
   boardEl.style.setProperty('--cs',        `${cs}px`);
   boardEl.style.setProperty('--gap',       `${gap}px`);
   boardEl.style.setProperty('--cell-font', `${Math.floor(cs * 0.46)}px`);
@@ -347,10 +358,7 @@ function renderBoard() {
   const avH    = mainEl.clientHeight - 28;
   const csW    = (avW - (S.cols - 1) * gap) / S.cols;
   const csH    = (avH - (S.rows - 1) * gap) / S.rows;
-  const autoCs = Math.max(14, Math.floor(Math.min(csW, csH)));
-
-  S._lastCs = autoCs;
-  const cs = S.zoomCs !== null ? S.zoomCs : autoCs;
+  const cs     = Math.max(14, Math.floor(Math.min(csW, csH)));
   sizeBoard(cs);
 
   const boardEl = document.getElementById('board');
@@ -475,72 +483,96 @@ function setupFab() {
   });
 }
 
-// ── Pinch-to-zoom (board) ─────────────────────────────────────────────────────
+// ── Pinch-to-zoom + pan (CSS transform) ──────────────────────────────────────
 
 function setupPinch() {
-  const wrap    = document.getElementById('board-wrap');
-  const boardEl = document.getElementById('board');
-  let pinching = false, pinchDist0 = 0, pinchCs0 = 0;
+  const main = document.getElementById('main');
 
-  wrap.addEventListener('touchstart', e => {
-    if (e.touches.length === 2) {
-      pinching   = true;
-      pinchDist0 = Math.hypot(
-        e.touches[1].clientX - e.touches[0].clientX,
-        e.touches[1].clientY - e.touches[0].clientY
-      );
-      pinchCs0 = S.zoomCs ?? S._lastCs;
+  let pinching = false, panning = false;
+  let dist0 = 0, zoom0 = 1, panX0 = 0, panY0 = 0;
+  let mainCX = 0, mainCY = 0, mid0X = 0, mid0Y = 0;
+  let panTX = 0, panTY = 0, panVX0 = 0, panVY0 = 0;
+  let lastTap = 0;
+
+  main.addEventListener('touchstart', e => {
+    const t = e.touches;
+    if (t.length >= 2) {
+      cancelLP();
+      pinching = true; panning = false;
+      dist0 = Math.hypot(t[1].clientX - t[0].clientX, t[1].clientY - t[0].clientY);
+      zoom0 = vZoom; panX0 = vPanX; panY0 = vPanY;
+      const r = main.getBoundingClientRect();
+      mainCX = r.left + r.width  / 2;
+      mainCY = r.top  + r.height / 2;
+      mid0X = (t[0].clientX + t[1].clientX) / 2;
+      mid0Y = (t[0].clientY + t[1].clientY) / 2;
+    } else if (t.length === 1 && vZoom > 1.05) {
+      panning = true;
+      panTX = t[0].clientX; panTY = t[0].clientY;
+      panVX0 = vPanX; panVY0 = vPanY;
     }
   }, { passive: true });
 
-  wrap.addEventListener('touchmove', e => {
-    if (!pinching || e.touches.length < 2) return;
-    e.preventDefault();
-    const dist  = Math.hypot(
-      e.touches[1].clientX - e.touches[0].clientX,
-      e.touches[1].clientY - e.touches[0].clientY
-    );
-    const newCs = Math.max(14, Math.min(80, Math.round(pinchCs0 * dist / pinchDist0)));
-    if (newCs !== S.zoomCs) {
-      S.zoomCs = newCs;
-      sizeBoard(newCs); // CSS-only: no DOM rebuild, runs at full 60fps
+  main.addEventListener('touchmove', e => {
+    const t = e.touches;
+    if (pinching && t.length >= 2) {
+      e.preventDefault();
+      const d = Math.hypot(t[1].clientX - t[0].clientX, t[1].clientY - t[0].clientY);
+      const newZoom = Math.max(1, Math.min(6, zoom0 * d / dist0));
+      const midX = (t[0].clientX + t[1].clientX) / 2;
+      const midY = (t[0].clientY + t[1].clientY) / 2;
+      // Adjust pan so the point under the pinch centre stays fixed on screen
+      const ratio = newZoom / zoom0;
+      vZoom = newZoom;
+      vPanX = midX - mainCX - (mid0X - mainCX - panX0) * ratio;
+      vPanY = midY - mainCY - (mid0Y - mainCY - panY0) * ratio;
+      clampPan();
+      applyViewTransform();
+    } else if (panning && !pinching && t.length === 1) {
+      e.preventDefault();
+      vPanX = panVX0 + (t[0].clientX - panTX);
+      vPanY = panVY0 + (t[0].clientY - panTY);
+      clampPan();
+      applyViewTransform();
     }
   }, { passive: false });
 
-  wrap.addEventListener('touchend', e => {
-    if (e.touches.length < 2) pinching = false;
+  main.addEventListener('touchend', e => {
+    const t = e.touches;
+    if (t.length < 2) pinching = false;
+    if (t.length === 0) {
+      panning = false;
+      if (vZoom < 1.08) resetView(); // snap to 1 if barely zoomed
+      // double-tap to reset zoom
+      const now = Date.now();
+      if (now - lastTap < 300) resetView();
+      lastTap = now;
+    }
   }, { passive: true });
-
-  // Double-tap on empty board area resets zoom
-  let lastTap = 0;
-  wrap.addEventListener('click', e => {
-    if (e.target !== wrap && e.target !== boardEl) return;
-    const now = Date.now();
-    if (now - lastTap < 280) { S.zoomCs = null; renderBoard(); }
-    lastTap = now;
-  });
 }
 
 // ── Input wiring ──────────────────────────────────────────────────────────────
+
+let _lpTimer = null;
+function cancelLP() { clearTimeout(_lpTimer); _lpTimer = null; }
 
 function setupEvents() {
   const boardEl = document.getElementById('board');
 
   // Board tap + long-press to flag
-  let lpTimer = null, lpFired = false, lpX = 0, lpY = 0;
+  let lpFired = false, lpX = 0, lpY = 0;
 
   boardEl.addEventListener('pointerdown', e => {
     const el = e.target.closest('.cell');
     if (!el) return;
     lpFired = false; lpX = e.clientX; lpY = e.clientY;
-    lpTimer = setTimeout(() => {
+    _lpTimer = setTimeout(() => {
       lpFired = true;
       navigator.vibrate?.(28);
       toggleFlag(+el.dataset.r, +el.dataset.c);
     }, 380);
   });
 
-  const cancelLP = () => clearTimeout(lpTimer);
   boardEl.addEventListener('pointerup',     cancelLP);
   boardEl.addEventListener('pointercancel', cancelLP);
   boardEl.addEventListener('pointermove', e => {

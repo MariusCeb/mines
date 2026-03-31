@@ -88,26 +88,25 @@ header {
 /* ── Board ─────────────────────────────────────────────────────────────────── */
 main {
   flex: 1;
-  overflow: hidden;  /* toggled to auto by JS when board overflows */
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 14px;
-  transition: none;
-  -webkit-overflow-scrolling: touch;
+  touch-action: none; /* all gestures handled by JS */
 }
 
 #board-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  touch-action: pan-x pan-y;
+  transform-origin: center center;
+  will-change: transform;
 }
 
 #board {
   display: grid;
   gap: var(--gap, 3px);
-  touch-action: none;  /* override per-cell below; pinch handled in JS */
   user-select: none; -webkit-user-select: none;
 }
 
