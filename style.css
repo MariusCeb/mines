@@ -153,10 +153,9 @@ main {
 #flag-fab {
   position: absolute;
   /* left/bottom set by JS */
-  width: 58px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 3px;
-  padding: 10px 0 9px;
+  width: 50px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 13px 0;
   border-radius: 16px;
   background: var(--surface);
   box-shadow: 0 4px 20px rgba(0,0,0,0.28), 0 1px 4px rgba(0,0,0,0.2);
@@ -174,13 +173,6 @@ main {
   color: #fff;
 }
 #flag-fab svg { display: block; }
-#fab-label {
-  font-size: 8px; font-weight: 600; letter-spacing: .06em;
-  text-transform: uppercase; color: var(--text-dim);
-  transition: color .18s;
-  pointer-events: none;
-}
-#flag-fab.flag-on #fab-label { color: rgba(255,255,255,0.85); }
 #fab-icon { pointer-events: none; display: flex; align-items: center; justify-content: center; }
 
 /* ── Win/Lose overlay ──────────────────────────────────────────────────────── */
@@ -235,6 +227,11 @@ main {
   width: 36px; height: 4px;
   background: var(--surface-hi); border-radius: 2px;
   margin: 12px auto 0;
+  cursor: grab; touch-action: none;
+  /* larger hit area */
+  padding: 10px 20px;
+  box-sizing: content-box;
+  margin-left: auto; margin-right: auto;
 }
 .sheet-body { padding: 18px 20px 4px; overflow-y: auto; max-height: 78dvh; }
 .sheet-section { margin-bottom: 22px; }

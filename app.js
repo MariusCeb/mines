@@ -442,8 +442,7 @@ function clampFab() {
 function updateFab() {
   const fab = document.getElementById('flag-fab');
   fab.classList.toggle('flag-on', S.flagMode);
-  document.getElementById('fab-icon').innerHTML  = S.flagMode ? I.flag(20) : I.cursor(20);
-  document.getElementById('fab-label').textContent = S.flagMode ? 'Flag' : 'Reveal';
+  document.getElementById('fab-icon').innerHTML = S.flagMode ? I.flag(20) : I.cursor(20);
 }
 
 function setupFab() {
@@ -488,7 +487,7 @@ function setupFab() {
 function setupPinch() {
   const main = document.getElementById('main');
 
-  let pinching = false, panning = false;
+  let pinching = false, panning = false, wasPinch = false;
   let dist0 = 0, zoom0 = 1, panX0 = 0, panY0 = 0;
   let mainCX = 0, mainCY = 0, mid0X = 0, mid0Y = 0;
   let panTX = 0, panTY = 0, panVX0 = 0, panVY0 = 0;
@@ -498,7 +497,8 @@ function setupPinch() {
     const t = e.touches;
     if (t.length >= 2) {
       cancelLP();
-      pinching = true; panning = false;
+      pinching = true; panning = false; wasPinch = true;
+      lastTap = 0; // prevent false double-tap when fingers lift off
       dist0 = Math.hypot(t[1].clientX - t[0].clientX, t[1].clientY - t[0].clientY);
       zoom0 = vZoom; panX0 = vPanX; panY0 = vPanY;
       const r = main.getBoundingClientRect();
@@ -506,10 +506,13 @@ function setupPinch() {
       mainCY = r.top  + r.height / 2;
       mid0X = (t[0].clientX + t[1].clientX) / 2;
       mid0Y = (t[0].clientY + t[1].clientY) / 2;
-    } else if (t.length === 1 && vZoom > 1.05) {
-      panning = true;
-      panTX = t[0].clientX; panTY = t[0].clientY;
-      panVX0 = vPanX; panVY0 = vPanY;
+    } else if (t.length === 1) {
+      if (!pinching) wasPinch = false; // fresh single-touch gesture
+      if (vZoom > 1.05) {
+        panning = true;
+        panTX = t[0].clientX; panTY = t[0].clientY;
+        panVX0 = vPanX; panVY0 = vPanY;
+      }
     }
   }, { passive: true });
 
@@ -542,11 +545,14 @@ function setupPinch() {
     if (t.length < 2) pinching = false;
     if (t.length === 0) {
       panning = false;
-      if (vZoom < 1.08) resetView(); // snap to 1 if barely zoomed
-      // double-tap to reset zoom
-      const now = Date.now();
-      if (now - lastTap < 300) resetView();
-      lastTap = now;
+      if (vZoom < 1.08) resetView();
+      // double-tap to reset zoom — only for single-touch taps, not pinch lift-off
+      if (!wasPinch) {
+        const now = Date.now();
+        if (now - lastTap < 300) resetView();
+        lastTap = now;
+      }
+      wasPinch = false;
     }
   }, { passive: true });
 }
@@ -650,6 +656,63 @@ function injectIcons() {
   document.getElementById('import-label').insertAdjacentHTML('afterbegin', I.upload());
 }
 
+// ── Draggable settings sheet handle ──────────────────────────────────────────
+
+function setupSheetDrag() {
+  const sheet    = document.getElementById('settings-sheet');
+  const handle   = document.getElementById('sheet-handle');
+  const backdrop = document.getElementById('sheet-backdrop');
+  const EASE = 'transform .28s cubic-bezier(.32,0,.15,1)';
+  const THRESHOLD = 80;
+
+  let dragging = false, startY = 0, dragY = 0;
+
+  handle.addEventListener('pointerdown', e => {
+    if (!sheet.classList.contains('open')) return;
+    dragging = true; dragY = 0;
+    startY = e.clientY;
+    sheet.style.transition = 'none';
+    handle.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+
+  handle.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    dragY = Math.max(0, e.clientY - startY);
+    sheet.style.transform = `translateX(-50%) translateY(${dragY}px)`;
+  });
+
+  handle.addEventListener('pointerup', () => {
+    if (!dragging) return;
+    dragging = false;
+    if (dragY > THRESHOLD) {
+      // animate out from current drag position, then clean up
+      sheet.style.transition = EASE;
+      sheet.style.transform = 'translateX(-50%) translateY(102%)';
+      setTimeout(() => {
+        sheet.style.transition = 'none';
+        sheet.style.transform = '';
+        sheet.classList.remove('open');
+        backdrop.classList.remove('open');
+        requestAnimationFrame(() => { sheet.style.transition = ''; });
+      }, 290);
+    } else {
+      // snap back open
+      sheet.style.transition = EASE;
+      sheet.style.transform = 'translateX(-50%) translateY(0)';
+      setTimeout(() => { sheet.style.transition = ''; sheet.style.transform = ''; }, 290);
+    }
+  });
+
+  handle.addEventListener('pointercancel', () => {
+    if (!dragging) return;
+    dragging = false;
+    sheet.style.transition = EASE;
+    sheet.style.transform = 'translateX(-50%) translateY(0)';
+    setTimeout(() => { sheet.style.transition = ''; sheet.style.transform = ''; }, 290);
+  });
+}
+
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -658,6 +721,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupEvents();
   setupFab();
   setupPinch();
+  setupSheetDrag();
 
   requestAnimationFrame(() => {
     newGame('easy');
