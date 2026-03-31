@@ -442,7 +442,7 @@ function clampFab() {
 function updateFab() {
   const fab = document.getElementById('flag-fab');
   fab.classList.toggle('flag-on', S.flagMode);
-  document.getElementById('fab-icon').innerHTML = S.flagMode ? I.flag(20) : I.cursor(20);
+  document.getElementById('fab-icon').innerHTML = S.flagMode ? I.flag(24) : I.cursor(24);
 }
 
 function setupFab() {
@@ -547,7 +547,7 @@ function setupPinch() {
       panning = false;
       if (vZoom < 1.08) resetView();
       // double-tap to reset zoom — only for single-touch taps, not pinch lift-off
-      if (!wasPinch) {
+      if (!wasPinch && !e.target.closest('.cell')) {
         const now = Date.now();
         if (now - lastTap < 300) resetView();
         lastTap = now;

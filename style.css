@@ -153,9 +153,9 @@ main {
 #flag-fab {
   position: absolute;
   /* left/bottom set by JS */
-  width: 50px;
+  width: 62px;
   display: flex; align-items: center; justify-content: center;
-  padding: 13px 0;
+  padding: 17px 0;
   border-radius: 16px;
   background: var(--surface);
   box-shadow: 0 4px 20px rgba(0,0,0,0.28), 0 1px 4px rgba(0,0,0,0.2);
