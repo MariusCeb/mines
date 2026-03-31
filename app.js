@@ -2,10 +2,10 @@
 
 // ── Difficulty presets (square grids) ─────────────────────────────────────────
 const DIFF = {
-  easy:    { rows: 8,  cols: 8,  mines: 10  },
-  medium:  { rows: 12, cols: 12, mines: 22  },
-  hard:    { rows: 16, cols: 16, mines: 40  },
-  extreme: { rows: 20, cols: 20, mines: 90  },  // tiny cells — use pinch to zoom
+  easy:    { rows: 8,  cols: 8,  mines: 10 },
+  medium:  { rows: 12, cols: 12, mines: 40 },
+  hard:    { rows: 16, cols: 16, mines: 99 },
+  extreme: { rows: 20, cols: 20, mines: 93 },
 };
 
 // ── Inline SVG icons ──────────────────────────────────────────────────────────
@@ -300,11 +300,41 @@ function renderStats() {
     }).join('');
 }
 
-// ── Accent colour (orange) ────────────────────────────────────────────────────
+// ── Themes ────────────────────────────────────────────────────────────────────
 
-function applyAccent() {
-  const isDark = document.documentElement.dataset.theme !== 'light';
-  document.documentElement.style.setProperty('--accent', isDark ? '#ff453a' : '#ff3b30');
+const THEMES = {
+  void:  { label: 'Void',  bg: '#0e0e0e', accent: '#ff453a' },
+  chalk: { label: 'Chalk', bg: '#f2f2f7', accent: '#ff3b30' },
+  ocean: { label: 'Ocean', bg: '#050d1a', accent: '#00b4d8' },
+  dusk:  { label: 'Dusk',  bg: '#100820', accent: '#c084fc' },
+  neon:  { label: 'Neon',  bg: '#040404', accent: '#00ff88' },
+};
+const THEME_ORDER = Object.keys(THEMES);
+
+function applyTheme(id) {
+  if (!THEMES[id]) id = 'void';
+  document.documentElement.dataset.theme = id;
+  document.getElementById('meta-theme').content = THEMES[id].bg;
+  document.getElementById('theme-btn').innerHTML = id === 'chalk' ? I.moon() : I.sun();
+  localStorage.setItem('mines-theme', id);
+  document.querySelectorAll('.theme-swatch').forEach(b =>
+    b.classList.toggle('active', b.dataset.themeId === id)
+  );
+}
+
+function renderThemePicker() {
+  const cur = document.documentElement.dataset.theme;
+  const picker = document.getElementById('theme-picker');
+  picker.innerHTML = THEME_ORDER.map(id => {
+    const t = THEMES[id];
+    return `<button class="theme-swatch${id === cur ? ' active' : ''}" data-theme-id="${id}">
+      <span class="sw-dot" style="background:linear-gradient(135deg,${t.bg} 50%,${t.accent} 50%)"></span>
+      <span class="sw-name">${t.label}</span>
+    </button>`;
+  }).join('');
+  picker.querySelectorAll('.theme-swatch').forEach(btn =>
+    btn.addEventListener('click', () => applyTheme(btn.dataset.themeId))
+  );
 }
 
 function exportScores() {
@@ -409,6 +439,7 @@ function openSheet() {
   syncDiffButtons(S.diff);
   renderScoreboard();
   renderStats();
+  renderThemePicker();
   document.getElementById('settings-sheet').classList.add('open');
   document.getElementById('sheet-backdrop').classList.add('open');
 }
@@ -625,22 +656,11 @@ function setupEvents() {
     if (file) { importScores(file); e.target.value = ''; }
   });
 
-  // Theme (header button)
-  const themeBtnH = document.getElementById('theme-btn');
-  const metaTheme = document.getElementById('meta-theme');
-  const themeToggle = document.getElementById('theme-toggle');
-
-  function applyTheme(light) {
-    document.documentElement.dataset.theme = light ? 'light' : 'dark';
-    themeBtnH.innerHTML = light ? I.moon() : I.sun();
-    metaTheme.content   = light ? '#f2f2f7' : '#0e0e0e';
-    themeToggle.checked = light;
-    applyAccent();
-  }
-  themeBtnH.addEventListener('click', () =>
-    applyTheme(document.documentElement.dataset.theme !== 'light')
-  );
-  themeToggle.addEventListener('change', e => applyTheme(e.target.checked));
+  // Theme (header button — cycles through themes)
+  document.getElementById('theme-btn').addEventListener('click', () => {
+    const cur = document.documentElement.dataset.theme;
+    applyTheme(THEME_ORDER[(THEME_ORDER.indexOf(cur) + 1) % THEME_ORDER.length]);
+  });
 
   // Resize
   window.addEventListener('resize', () => { if (S.board.length) renderBoard(); });
@@ -717,7 +737,7 @@ function setupSheetDrag() {
 
 document.addEventListener('DOMContentLoaded', () => {
   injectIcons();
-  applyAccent();
+  applyTheme(localStorage.getItem('mines-theme') ?? 'void');
   setupEvents();
   setupFab();
   setupPinch();

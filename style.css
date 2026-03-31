@@ -5,41 +5,52 @@
 }
 
 /* ── Tokens ────────────────────────────────────────────────────────────────── */
-:root {
-  --font: 'IBM Plex Mono', monospace;
-  --bg:         #0e0e0e;
-  --surface:    #1c1c1e;
-  --surface-hi: #2c2c2e;
-  --border:     rgba(255,255,255,0.07);
-  --text:       #f5f5f7;
-  --text-dim:   #636366;
-  --cell-idle:  #1e1e20;
-  --cell-open:  #141416;
-  --accent:     #ff453a;
-  --tog-off:    #3a3a3c;
-  --tog-on:     #30d158;
-  --overlay-bg: rgba(8,8,8,0.90);
-  --shadow:     0 1px 0 rgba(255,255,255,0.04), inset 0 -1px 0 rgba(0,0,0,0.4);
-  --n1:#60a5fa; --n2:#4ade80; --n3:#f87171; --n4:#818cf8;
-  --n5:#fb923c; --n6:#34d399; --n7:#c084fc; --n8:#94a3b8;
-}
+:root { --font: 'IBM Plex Mono', monospace; }
 
-[data-theme="light"] {
-  --bg:         #f2f2f7;
-  --surface:    #e5e5ea;
-  --surface-hi: #d1d1d6;
-  --border:     rgba(0,0,0,0.07);
-  --text:       #1c1c1e;
-  --text-dim:   #8e8e93;
-  --cell-idle:  #dcdce0;
-  --cell-open:  #ebebef;
-  --accent:     #ff3b30;
-  --tog-off:    #d1d1d6;
-  --tog-on:     #34c759;
-  --overlay-bg: rgba(242,242,247,0.92);
-  --shadow:     0 1px 2px rgba(0,0,0,0.13);
-  --n1:#2563eb; --n2:#16a34a; --n3:#dc2626; --n4:#4f46e5;
-  --n5:#c2410c; --n6:#0e7490; --n7:#7e22ce; --n8:#475569;
+[data-theme="void"] {
+  --bg:#0e0e0e; --surface:#1c1c1e; --surface-hi:#2c2c2e;
+  --border:rgba(255,255,255,0.07); --text:#f5f5f7; --text-dim:#636366;
+  --cell-idle:#1e1e20; --cell-open:#141416; --accent:#ff453a;
+  --overlay-bg:rgba(8,8,8,0.90);
+  --shadow:0 1px 0 rgba(255,255,255,0.04),inset 0 -1px 0 rgba(0,0,0,0.4);
+  --n1:#60a5fa;--n2:#4ade80;--n3:#f87171;--n4:#818cf8;
+  --n5:#fb923c;--n6:#34d399;--n7:#c084fc;--n8:#94a3b8;
+}
+[data-theme="chalk"] {
+  --bg:#f2f2f7; --surface:#ffffff; --surface-hi:#e5e5ea;
+  --border:rgba(0,0,0,0.08); --text:#1c1c1e; --text-dim:#8e8e93;
+  --cell-idle:#dcdce0; --cell-open:#ebebef; --accent:#ff3b30;
+  --overlay-bg:rgba(242,242,247,0.92);
+  --shadow:0 1px 3px rgba(0,0,0,0.12),0 1px 0 rgba(255,255,255,0.9);
+  --n1:#2563eb;--n2:#16a34a;--n3:#dc2626;--n4:#4f46e5;
+  --n5:#c2410c;--n6:#0e7490;--n7:#7e22ce;--n8:#475569;
+}
+[data-theme="ocean"] {
+  --bg:#050d1a; --surface:#0c1c33; --surface-hi:#142845;
+  --border:rgba(0,180,216,0.1); --text:#caf0f8; --text-dim:#4a7f9a;
+  --cell-idle:#0a1828; --cell-open:#060f1e; --accent:#00b4d8;
+  --overlay-bg:rgba(5,13,26,0.93);
+  --shadow:0 1px 0 rgba(0,180,216,0.06),inset 0 -1px 0 rgba(0,0,0,0.5);
+  --n1:#48cae4;--n2:#52b788;--n3:#e63946;--n4:#7b5ea7;
+  --n5:#f4a261;--n6:#2dc4b2;--n7:#c77dff;--n8:#6c8ebf;
+}
+[data-theme="dusk"] {
+  --bg:#100820; --surface:#1c1035; --surface-hi:#271848;
+  --border:rgba(160,100,255,0.12); --text:#ede0ff; --text-dim:#7458a8;
+  --cell-idle:#180c2e; --cell-open:#0f0820; --accent:#c084fc;
+  --overlay-bg:rgba(16,8,32,0.93);
+  --shadow:0 1px 0 rgba(160,100,255,0.07),inset 0 -1px 0 rgba(0,0,0,0.5);
+  --n1:#93c5fd;--n2:#86efac;--n3:#fca5a5;--n4:#d8b4fe;
+  --n5:#fed7aa;--n6:#6ee7b7;--n7:#f0abfc;--n8:#94a3b8;
+}
+[data-theme="neon"] {
+  --bg:#040404; --surface:#0c0c0c; --surface-hi:#151515;
+  --border:rgba(0,255,136,0.1); --text:#ccffe4; --text-dim:#1f6640;
+  --cell-idle:#080808; --cell-open:#040404; --accent:#00ff88;
+  --overlay-bg:rgba(4,4,4,0.95);
+  --shadow:0 0 0 1px rgba(0,255,136,0.12),inset 0 -1px 0 rgba(0,0,0,0.7);
+  --n1:#00e5ff;--n2:#00ff88;--n3:#ff3366;--n4:#bf5fff;
+  --n5:#ff9900;--n6:#00ffd5;--n7:#ff00cc;--n8:#526b5e;
 }
 
 /* ── Base ──────────────────────────────────────────────────────────────────── */
@@ -167,9 +178,9 @@ main {
   transition: background .18s, box-shadow .18s, border-color .18s;
 }
 #flag-fab.flag-on {
-  background: #ef4444;
-  border-color: #ef4444;
-  box-shadow: 0 4px 20px rgba(239,68,68,0.45);
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.35);
   color: #fff;
 }
 #flag-fab svg { display: block; }
@@ -294,26 +305,24 @@ main {
 .score-date  { font-size: 11px; color: var(--text-dim); }
 .score-empty { font-size: 12px; color: var(--text-dim); padding: 6px 0; }
 
-/* Toggle (reused for theme toggle in sheet) */
-.ftoggle { display: flex; align-items: center; gap: 5px; cursor: pointer; }
-.ftoggle input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
-.ttrack {
-  position: relative; width: 40px; height: 24px;
-  background: var(--tog-off); border-radius: 12px; flex-shrink: 0; display: block;
-  transition: background .2s;
+/* ── Theme picker ──────────────────────────────────────────────────────────── */
+#theme-picker { display: flex; gap: 6px; }
+.theme-swatch {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;
+  background: none; border: none; cursor: pointer; padding: 2px 0;
 }
-.tthumb {
-  position: absolute; top: 2px; left: 2px; width: 20px; height: 20px;
-  background: #fff; border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0,0,0,.3);
-  transition: transform .22s cubic-bezier(.34,1.56,.64,1);
+.sw-dot {
+  width: 36px; height: 36px; border-radius: 50%;
+  outline: 2.5px solid transparent; outline-offset: 3px;
+  transition: outline-color .15s;
 }
-.ftoggle input:checked + .ttrack { background: var(--tog-on); }
-.ftoggle input:checked + .ttrack .tthumb { transform: translateX(16px); }
-
-.sheet-theme-row {
-  display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;
+.theme-swatch.active .sw-dot { outline-color: var(--accent); }
+.sw-name {
+  font-family: var(--font); font-size: 8px; font-weight: 600;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--text-dim);
+  transition: color .15s;
 }
+.theme-swatch.active .sw-name { color: var(--text); }
 
 /* ── Win rate stats ─────────────────────────────────────────────────────────── */
 .stat-row {
