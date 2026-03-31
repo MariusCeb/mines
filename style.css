@@ -101,6 +101,7 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
+  touch-action: pan-x pan-y;
 }
 
 #board {
@@ -165,9 +166,9 @@ main {
   transition: background .18s, box-shadow .18s, border-color .18s;
 }
 #flag-fab.flag-on {
-  background: var(--tog-on);
-  border-color: var(--tog-on);
-  box-shadow: 0 4px 20px rgba(48,209,88,0.38);
+  background: #ef4444;
+  border-color: #ef4444;
+  box-shadow: 0 4px 20px rgba(239,68,68,0.45);
   color: #fff;
 }
 #flag-fab svg { display: block; }
@@ -177,7 +178,7 @@ main {
   transition: color .18s;
   pointer-events: none;
 }
-#flag-fab.flag-on #fab-label { color: rgba(255,255,255,0.8); }
+#flag-fab.flag-on #fab-label { color: rgba(255,255,255,0.85); }
 #fab-icon { pointer-events: none; display: flex; align-items: center; justify-content: center; }
 
 /* ── Win/Lose overlay ──────────────────────────────────────────────────────── */

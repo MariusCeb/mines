@@ -363,7 +363,7 @@ function renderBoard() {
   const avH = mainEl.clientHeight - 28;
   const csW = (avW - (S.cols - 1) * gap) / S.cols;
   const csH = (avH - (S.rows - 1) * gap) / S.rows;
-  const autoCs = Math.max(10, Math.floor(Math.min(csW, csH)));
+  const autoCs = Math.max(14, Math.floor(Math.min(csW, csH)));
 
   // User pinch zoom can override auto size
   const cs = S.zoomCs !== null ? S.zoomCs : autoCs;
@@ -381,11 +381,11 @@ function renderBoard() {
 
   boardEl.style.setProperty('--cs',        `${cs}px`);
   boardEl.style.setProperty('--gap',       `${gap}px`);
-  boardEl.style.setProperty('--cell-font', `${Math.max(8, Math.floor(cs * 0.46))}px`);
+  boardEl.style.setProperty('--cell-font', `${Math.floor(cs * 0.46)}px`);
   boardEl.style.gridTemplateColumns = `repeat(${S.cols}, ${cs}px)`;
   boardEl.style.gridTemplateRows    = `repeat(${S.rows}, ${cs}px)`;
 
-  const iconSz = Math.max(9, Math.floor(cs * 0.56));
+  const iconSz = Math.floor(cs * 0.55);
   const frag   = document.createDocumentFragment();
   for (let r = 0; r < S.rows; r++)
     for (let c = 0; c < S.cols; c++)
@@ -511,41 +511,50 @@ function setupFab() {
 // ── Pinch-to-zoom (board) ─────────────────────────────────────────────────────
 
 function setupPinch() {
-  const wrap = document.getElementById('board-wrap');
-  let pinching = false, pinchDist0 = 0, pinchCs0 = 0;
+  const wrap    = document.getElementById('board-wrap');
+  const boardEl = document.getElementById('board');
 
+  let pinching = false, pinchDist0 = 0, pinchCs0 = 0;
+  let rafPending = false;
+
+  // passive:false on touchstart so we can call preventDefault for 2-finger touches
   wrap.addEventListener('touchstart', e => {
     if (e.touches.length === 2) {
-      pinching  = true;
+      pinching   = true;
       pinchDist0 = Math.hypot(
         e.touches[1].clientX - e.touches[0].clientX,
         e.touches[1].clientY - e.touches[0].clientY
       );
       pinchCs0 = S.zoomCs ?? S._lastCs;
+      e.preventDefault(); // stop browser native zoom
     }
-  }, { passive: true });
+  }, { passive: false });
 
+  // passive:false so preventDefault blocks the browser's own pinch-zoom
   wrap.addEventListener('touchmove', e => {
     if (!pinching || e.touches.length < 2) return;
+    e.preventDefault(); // prevent browser scroll/zoom fighting our pinch
+    if (rafPending) return; // throttle: one DOM update per animation frame
     const dist = Math.hypot(
       e.touches[1].clientX - e.touches[0].clientX,
       e.touches[1].clientY - e.touches[0].clientY
     );
-    const newCs = Math.max(8, Math.min(80, Math.round(pinchCs0 * dist / pinchDist0)));
+    const newCs = Math.max(14, Math.min(80, Math.round(pinchCs0 * dist / pinchDist0)));
     if (newCs !== S.zoomCs) {
-      S.zoomCs = newCs;
-      renderBoard();
+      rafPending = true;
+      S.zoomCs   = newCs;
+      requestAnimationFrame(() => { renderBoard(); rafPending = false; });
     }
-  }, { passive: true });
+  }, { passive: false });
 
   wrap.addEventListener('touchend', e => {
-    if (e.touches.length < 2) pinching = false;
+    if (e.touches.length < 2) { pinching = false; rafPending = false; }
   }, { passive: true });
 
   // Double-tap on board background resets zoom
   let lastTap = 0;
   wrap.addEventListener('click', e => {
-    if (e.target !== wrap && e.target !== document.getElementById('board')) return;
+    if (e.target !== wrap && e.target !== boardEl) return;
     const now = Date.now();
     if (now - lastTap < 280) { S.zoomCs = null; renderBoard(); }
     lastTap = now;
