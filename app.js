@@ -283,8 +283,7 @@ function renderStats() {
 
 function applyAccent() {
   const isDark = document.documentElement.dataset.theme !== 'light';
-  const c = { dark: '#ff9f0a', light: '#ff9500' };
-  document.documentElement.style.setProperty('--accent', isDark ? c.dark : c.light);
+  document.documentElement.style.setProperty('--accent', isDark ? '#ff453a' : '#ff3b30');
 }
 
 function exportScores() {
@@ -320,32 +319,18 @@ function updateStats() {
   document.getElementById('timer-val').textContent  = S.time.toFixed(2);
 }
 
-function renderBoard() {
+// Updates only CSS layout — zero DOM changes. Safe to call every animation frame.
+function sizeBoard(cs) {
   const boardEl = document.getElementById('board');
   const mainEl  = document.getElementById('main');
   const gap     = S.cols <= 8 ? 4 : S.cols <= 12 ? 3 : S.cols <= 16 ? 2 : 1;
-
-  // Compute base cell size from available screen space
-  const avW = mainEl.clientWidth  - 28;
-  const avH = mainEl.clientHeight - 28;
-  const csW = (avW - (S.cols - 1) * gap) / S.cols;
-  const csH = (avH - (S.rows - 1) * gap) / S.rows;
-  const autoCs = Math.max(14, Math.floor(Math.min(csW, csH)));
-
-  // User pinch zoom can override auto size
-  const cs = S.zoomCs !== null ? S.zoomCs : autoCs;
-  S._lastCs = autoCs; // remember auto size for pinch reference
-
-  // Board pixel dimensions
-  const boardW = S.cols * cs + (S.cols - 1) * gap;
-  const boardH = S.rows * cs + (S.rows - 1) * gap;
-
-  // If board overflows, make main scrollable and align to top-left
+  const boardW  = S.cols * cs + (S.cols - 1) * gap;
+  const boardH  = S.rows * cs + (S.rows - 1) * gap;
   const overflows = boardW > mainEl.clientWidth || boardH > mainEl.clientHeight;
+
   mainEl.style.overflow       = overflows ? 'auto'       : 'hidden';
   mainEl.style.alignItems     = overflows ? 'flex-start' : 'center';
   mainEl.style.justifyContent = overflows ? 'flex-start' : 'center';
-  // Allow single-finger pan of main when board overflows; none otherwise
   boardEl.style.touchAction   = overflows ? 'pan-x pan-y' : 'none';
 
   boardEl.style.setProperty('--cs',        `${cs}px`);
@@ -353,18 +338,31 @@ function renderBoard() {
   boardEl.style.setProperty('--cell-font', `${Math.floor(cs * 0.46)}px`);
   boardEl.style.gridTemplateColumns = `repeat(${S.cols}, ${cs}px)`;
   boardEl.style.gridTemplateRows    = `repeat(${S.rows}, ${cs}px)`;
+}
 
-  const iconSz = Math.floor(cs * 0.55);
-  const frag   = document.createDocumentFragment();
+function renderBoard() {
+  const mainEl = document.getElementById('main');
+  const gap    = S.cols <= 8 ? 4 : S.cols <= 12 ? 3 : S.cols <= 16 ? 2 : 1;
+  const avW    = mainEl.clientWidth  - 28;
+  const avH    = mainEl.clientHeight - 28;
+  const csW    = (avW - (S.cols - 1) * gap) / S.cols;
+  const csH    = (avH - (S.rows - 1) * gap) / S.rows;
+  const autoCs = Math.max(14, Math.floor(Math.min(csW, csH)));
+
+  S._lastCs = autoCs;
+  const cs = S.zoomCs !== null ? S.zoomCs : autoCs;
+  sizeBoard(cs);
+
+  const boardEl = document.getElementById('board');
+  const frag    = document.createDocumentFragment();
   for (let r = 0; r < S.rows; r++)
     for (let c = 0; c < S.cols; c++)
-      frag.appendChild(buildCell(S.board[r][c], r, c, iconSz));
-
+      frag.appendChild(buildCell(S.board[r][c], r, c));
   boardEl.innerHTML = '';
   boardEl.appendChild(frag);
 }
 
-function buildCell(cell, r, c, iconSz) {
+function buildCell(cell, r, c) {
   const el = document.createElement('button');
   el.className = 'cell';
   el.dataset.r = r; el.dataset.c = c;
@@ -373,14 +371,14 @@ function buildCell(cell, r, c, iconSz) {
     el.classList.add('revealed');
     if (cell.isMine) {
       el.classList.add(cell.isHit ? 'mine-hit' : 'mine-show');
-      el.innerHTML = I.mine(iconSz);
+      el.innerHTML = I.mine(20); // sized by CSS via --cs
     } else if (cell.adjacent > 0) {
       el.classList.add(`n${cell.adjacent}`);
       el.textContent = cell.adjacent;
     }
   } else if (cell.flagged) {
     el.classList.add('flagged');
-    el.innerHTML = I.flag(iconSz * 0.88);
+    el.innerHTML = I.flag(17); // sized by CSS via --cs
   }
   return el;
 }
@@ -482,13 +480,11 @@ function setupFab() {
 function setupPinch() {
   const wrap    = document.getElementById('board-wrap');
   const boardEl = document.getElementById('board');
-
-  let pinching = false, pinchDist0 = 0, pinchCs0 = 0, pinchScale = 1;
+  let pinching = false, pinchDist0 = 0, pinchCs0 = 0;
 
   wrap.addEventListener('touchstart', e => {
     if (e.touches.length === 2) {
       pinching   = true;
-      pinchScale = 1;
       pinchDist0 = Math.hypot(
         e.touches[1].clientX - e.touches[0].clientX,
         e.touches[1].clientY - e.touches[0].clientY
@@ -499,33 +495,23 @@ function setupPinch() {
 
   wrap.addEventListener('touchmove', e => {
     if (!pinching || e.touches.length < 2) return;
-    e.preventDefault(); // block browser native pinch-zoom
-    const dist = Math.hypot(
+    e.preventDefault();
+    const dist  = Math.hypot(
       e.touches[1].clientX - e.touches[0].clientX,
       e.touches[1].clientY - e.touches[0].clientY
     );
-    pinchScale = dist / pinchDist0;
-
-    // Zoom origin = midpoint between fingers (natural feel)
-    const rect = boardEl.getBoundingClientRect();
-    const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-    const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-    const ox = ((midX - rect.left) / rect.width  * 100).toFixed(1) + '%';
-    const oy = ((midY - rect.top)  / rect.height * 100).toFixed(1) + '%';
-    boardEl.style.transformOrigin = `${ox} ${oy}`;
-    boardEl.style.transform       = `scale(${pinchScale})`;
+    const newCs = Math.max(14, Math.min(80, Math.round(pinchCs0 * dist / pinchDist0)));
+    if (newCs !== S.zoomCs) {
+      S.zoomCs = newCs;
+      sizeBoard(newCs); // CSS-only: no DOM rebuild, runs at full 60fps
+    }
   }, { passive: false });
 
   wrap.addEventListener('touchend', e => {
-    if (!pinching || e.touches.length >= 2) return;
-    pinching = false;
-    boardEl.style.transform       = '';
-    boardEl.style.transformOrigin = '';
-    S.zoomCs = Math.max(14, Math.min(80, Math.round(pinchCs0 * pinchScale)));
-    renderBoard();
+    if (e.touches.length < 2) pinching = false;
   }, { passive: true });
 
-  // Double-tap on board background resets zoom
+  // Double-tap on empty board area resets zoom
   let lastTap = 0;
   wrap.addEventListener('click', e => {
     if (e.target !== wrap && e.target !== boardEl) return;
