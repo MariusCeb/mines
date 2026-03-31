@@ -18,6 +18,8 @@ const I = {
   moon: (s=18) => `<svg width="${s}" height="${s}" viewBox="0 0 20 20" fill="currentColor"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg>`,
   download: (s=16) => `<svg width="${s}" height="${s}" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>`,
   upload:   (s=16) => `<svg width="${s}" height="${s}" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>`,
+  win:  (s=64) => `<svg width="${s}" height="${s}" viewBox="0 0 64 64" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="32" r="24"/><polyline points="20,33 28,42 44,22"/></svg>`,
+  lose: (s=64) => `<svg width="${s}" height="${s}" viewBox="0 0 64 64" fill="none" stroke="var(--text-dim)" stroke-width="2" stroke-linecap="round"><circle cx="32" cy="32" r="24"/><line x1="22" y1="22" x2="42" y2="42"/><line x1="42" y1="22" x2="22" y2="42"/></svg>`,
 };
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -422,7 +424,7 @@ function buildCell(cell, r, c) {
 }
 
 function showOverlay(won) {
-  document.getElementById('ov-emoji').textContent = won ? '🏆' : '💀';
+  document.getElementById('ov-emoji').innerHTML = won ? I.win() : I.lose();
   document.getElementById('ov-title').textContent = won ? 'You won' : 'Game over';
   document.getElementById('ov-sub').textContent   = won
     ? `${S.diff} · ${S.time.toFixed(2)}s`
