@@ -15,7 +15,7 @@
   --text-dim:   #636366;
   --cell-idle:  #1e1e20;
   --cell-open:  #141416;
-  --accent:     #0a84ff;
+  --accent:     #ff9f0a;
   --tog-off:    #3a3a3c;
   --tog-on:     #30d158;
   --overlay-bg: rgba(8,8,8,0.90);
@@ -33,7 +33,7 @@
   --text-dim:   #8e8e93;
   --cell-idle:  #dcdce0;
   --cell-open:  #ebebef;
-  --accent:     #007aff;
+  --accent:     #ff9500;
   --tog-off:    #d1d1d6;
   --tog-on:     #34c759;
   --overlay-bg: rgba(242,242,247,0.92);
@@ -315,17 +315,6 @@ main {
 .sheet-theme-row {
   display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;
 }
-
-/* ── Color swatches ────────────────────────────────────────────────────────── */
-.color-swatches { display: flex; gap: 10px; flex-wrap: wrap; padding: 2px 0; }
-.swatch {
-  width: 28px; height: 28px; border-radius: 50%;
-  border: 2.5px solid transparent;
-  cursor: pointer; flex-shrink: 0;
-  transition: transform .15s, border-color .15s;
-}
-.swatch.active { border-color: var(--text); transform: scale(1.2); }
-.swatch:active { transform: scale(0.88); }
 
 /* ── Win rate stats ─────────────────────────────────────────────────────────── */
 .stat-row {

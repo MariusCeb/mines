@@ -1,15 +1,5 @@
 'use strict';
 
-// ── Accent colour palette ─────────────────────────────────────────────────────
-const COLORS = [
-  { name: 'blue',   dark: '#0a84ff', light: '#007aff' },
-  { name: 'green',  dark: '#30d158', light: '#34c759' },
-  { name: 'orange', dark: '#ff9f0a', light: '#ff9500' },
-  { name: 'purple', dark: '#bf5af2', light: '#af52de' },
-  { name: 'pink',   dark: '#ff375f', light: '#ff2d55' },
-  { name: 'teal',   dark: '#40c8e0', light: '#32ade6' },
-];
-
 // ── Difficulty presets (square grids) ─────────────────────────────────────────
 const DIFF = {
   easy:    { rows: 8,  cols: 8,  mines: 10  },
@@ -289,34 +279,11 @@ function renderStats() {
     }).join('');
 }
 
-// ── Accent colour ─────────────────────────────────────────────────────────────
+// ── Accent colour (orange) ────────────────────────────────────────────────────
 
-function applyAccent(idx) {
+function applyAccent() {
   const isDark = document.documentElement.dataset.theme !== 'light';
-  const c = COLORS[idx];
-  document.documentElement.style.setProperty('--accent', isDark ? c.dark : c.light);
-  localStorage.setItem('mines-accent', String(idx));
-  document.querySelectorAll('.swatch').forEach((s, i) =>
-    s.classList.toggle('active', i === idx)
-  );
-}
-
-function initSwatches() {
-  const saved = parseInt(localStorage.getItem('mines-accent') ?? '0');
-  const wrap  = document.getElementById('color-swatches');
-  const isDark = document.documentElement.dataset.theme !== 'light';
-  wrap.innerHTML = COLORS.map((c, i) =>
-    `<button class="swatch${i === saved ? ' active' : ''}"
-      data-idx="${i}"
-      style="background:${c.dark}"
-      aria-label="${c.name}"></button>`
-  ).join('');
-  wrap.addEventListener('click', e => {
-    const btn = e.target.closest('.swatch');
-    if (btn) applyAccent(parseInt(btn.dataset.idx));
-  });
-  // Apply saved accent now
-  const c = COLORS[saved];
+  const c = { dark: '#ff9f0a', light: '#ff9500' };
   document.documentElement.style.setProperty('--accent', isDark ? c.dark : c.light);
 }
 
@@ -375,9 +342,11 @@ function renderBoard() {
 
   // If board overflows, make main scrollable and align to top-left
   const overflows = boardW > mainEl.clientWidth || boardH > mainEl.clientHeight;
-  mainEl.style.overflow      = overflows ? 'auto'       : 'hidden';
-  mainEl.style.alignItems    = overflows ? 'flex-start' : 'center';
+  mainEl.style.overflow       = overflows ? 'auto'       : 'hidden';
+  mainEl.style.alignItems     = overflows ? 'flex-start' : 'center';
   mainEl.style.justifyContent = overflows ? 'flex-start' : 'center';
+  // Allow single-finger pan of main when board overflows; none otherwise
+  boardEl.style.touchAction   = overflows ? 'pan-x pan-y' : 'none';
 
   boardEl.style.setProperty('--cs',        `${cs}px`);
   boardEl.style.setProperty('--gap',       `${gap}px`);
@@ -514,41 +483,46 @@ function setupPinch() {
   const wrap    = document.getElementById('board-wrap');
   const boardEl = document.getElementById('board');
 
-  let pinching = false, pinchDist0 = 0, pinchCs0 = 0;
-  let rafPending = false;
+  let pinching = false, pinchDist0 = 0, pinchCs0 = 0, pinchScale = 1;
 
-  // passive:false on touchstart so we can call preventDefault for 2-finger touches
   wrap.addEventListener('touchstart', e => {
     if (e.touches.length === 2) {
       pinching   = true;
+      pinchScale = 1;
       pinchDist0 = Math.hypot(
         e.touches[1].clientX - e.touches[0].clientX,
         e.touches[1].clientY - e.touches[0].clientY
       );
       pinchCs0 = S.zoomCs ?? S._lastCs;
-      e.preventDefault(); // stop browser native zoom
     }
-  }, { passive: false });
+  }, { passive: true });
 
-  // passive:false so preventDefault blocks the browser's own pinch-zoom
   wrap.addEventListener('touchmove', e => {
     if (!pinching || e.touches.length < 2) return;
-    e.preventDefault(); // prevent browser scroll/zoom fighting our pinch
-    if (rafPending) return; // throttle: one DOM update per animation frame
+    e.preventDefault(); // block browser native pinch-zoom
     const dist = Math.hypot(
       e.touches[1].clientX - e.touches[0].clientX,
       e.touches[1].clientY - e.touches[0].clientY
     );
-    const newCs = Math.max(14, Math.min(80, Math.round(pinchCs0 * dist / pinchDist0)));
-    if (newCs !== S.zoomCs) {
-      rafPending = true;
-      S.zoomCs   = newCs;
-      requestAnimationFrame(() => { renderBoard(); rafPending = false; });
-    }
+    pinchScale = dist / pinchDist0;
+
+    // Zoom origin = midpoint between fingers (natural feel)
+    const rect = boardEl.getBoundingClientRect();
+    const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    const ox = ((midX - rect.left) / rect.width  * 100).toFixed(1) + '%';
+    const oy = ((midY - rect.top)  / rect.height * 100).toFixed(1) + '%';
+    boardEl.style.transformOrigin = `${ox} ${oy}`;
+    boardEl.style.transform       = `scale(${pinchScale})`;
   }, { passive: false });
 
   wrap.addEventListener('touchend', e => {
-    if (e.touches.length < 2) { pinching = false; rafPending = false; }
+    if (!pinching || e.touches.length >= 2) return;
+    pinching = false;
+    boardEl.style.transform       = '';
+    boardEl.style.transformOrigin = '';
+    S.zoomCs = Math.max(14, Math.min(80, Math.round(pinchCs0 * pinchScale)));
+    renderBoard();
   }, { passive: true });
 
   // Double-tap on board background resets zoom
@@ -637,10 +611,7 @@ function setupEvents() {
     themeBtnH.innerHTML = light ? I.moon() : I.sun();
     metaTheme.content   = light ? '#f2f2f7' : '#0e0e0e';
     themeToggle.checked = light;
-    // Re-apply accent with correct light/dark variant
-    const idx = parseInt(localStorage.getItem('mines-accent') ?? '0');
-    const c   = COLORS[idx];
-    document.documentElement.style.setProperty('--accent', light ? c.light : c.dark);
+    applyAccent();
   }
   themeBtnH.addEventListener('click', () =>
     applyTheme(document.documentElement.dataset.theme !== 'light')
@@ -665,7 +636,7 @@ function injectIcons() {
 
 document.addEventListener('DOMContentLoaded', () => {
   injectIcons();
-  initSwatches();
+  applyAccent();
   setupEvents();
   setupFab();
   setupPinch();
